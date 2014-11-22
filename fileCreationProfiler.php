@@ -20,30 +20,14 @@
 
  */
 
-# Usage:
-#  ./fileCreationProfiler.php [duration in seconds]
-#
-#       If duration is ommited or 0, the script will run until user
-#       interruption (ctrl-c).
-#
-#       By default 2 files per seconds will be created and deleted, you can
-#       change this behaviour by setting the constant FILE_OPS_INTERVAL to a
-#       different value (see below).
-#
-#       Test files are created in the current directory
-
 ini_set("display_startup_errors", true);
 error_reporting(E_ALL | E_STRICT);
-
-######## CONFIGURATION ###########
-
-# Test file creation/deletion interval in microseconds
-const FILE_OPS_INTERVAL = 500000;
-
-##### END OF CONFIGURATION #######
+set_time_limit(0);
 
 const MAJOR = 1;
 const MINOR = 3;
+
+CONST USEC  = 1000000;
 
 # Test files base path
 $TEST_FILE_BASE_PATH = sprintf("%s%s%s_test-",
@@ -78,14 +62,24 @@ if ($argc > 1 && is_numeric($argv[1]))
 else
     $TIME_RUN_LIMIT = false;
 
-set_time_limit(0);
+if ($argc > 2 && is_numeric($argv[2]) && $argv[2])
+    $FILE_OPS_INTERVAL = (int)$argv[2];
+else
+    $FILE_OPS_INTERVAL = 500000;
+
+if ($argc > 3 && is_numeric($argv[3]) && $argv[3])
+    $SLOW_TIME_LIMIT = (int)$argv[2];
+else
+    $SLOW_TIME_LIMIT = 2 * $FILE_OPS_INTERVAL;
+
 ########
 
 printf("File creation/deletion profiling script v%d.%02d\n\n", MAJOR, MINOR);
 
-printf("Test started on %s.\nTest files created in '%s'.\nTest will run for %s.\nHit CTRL-C to stop.\n%s\n"
-    , gmdate("Y-m-d H:i's\"")
+printf("Test started on %s.\nTest files created/deleted in '%s' every %sus.\nTest will run for %s.\nHit CTRL-C to stop.\n%s\n"
+    , gmdate("Y-m-d H:i's\" T")
     , dirname($TEST_FILE_BASE_PATH)
+    , number_format($FILE_OPS_INTERVAL)
     , ($TIME_RUN_LIMIT ? "$TIME_RUN_LIMIT seconds" : "ever")
     , ($SIGNAL_HANDLING ? "" : "No signal handling. You will have to delete the last test file manually and no summary will be available.\n")
 );
@@ -97,7 +91,7 @@ $wheelPos   = 0;
 
 $cTotal     = $cMin = $cMed = $cMax = false;
 $uTotal     = $uMin = $uMed = $uMax = false;
-$cOverSec   = $uOverSec = 0;
+$cSlow      = $uSlow = 0;
 
 $quit       = false;
 
@@ -131,10 +125,10 @@ for ($i = 1 ; ! $quit ; $i++) {
 
     $cMed = $cTotal / $i;
 
-    if ($cElapsed > 1)
-        ++$cOverSec;
+    if ($cElapsed * USEC > $SLOW_TIME_LIMIT)
+        ++$cSlow;
 
-    #### delete the test file ####
+    #### Delete the test file ####
 
     $start = microtime(true);
     unlink ($TEST_FILE_BASE_PATH . $i);
@@ -150,12 +144,12 @@ for ($i = 1 ; ! $quit ; $i++) {
 
     $uMed = $uTotal / $i;
 
-    if ($uElapsed > 1)
-        ++$uOverSec;
+    if ($uElapsed * USEC > $SLOW_TIME_LIMIT)
+        ++$uSlow;
 
-    #### count bad times per hour of the day (GMT) ####
+    #### Count bad times per hour of the day (GMT) ####
 
-    if ($cElapsed + $uElapsed > 1) {
+    if (($cElapsed + $uElapsed) * USEC > $SLOW_TIME_LIMIT) {
         if (! isset($worstHours[(($time / 3600) % 24) . 'h']))
             $worstHours[(($time / 3600) % 24) . 'h']  = 1;
         else
@@ -175,16 +169,16 @@ for ($i = 1 ; ! $quit ; $i++) {
             , $WHEEL{$wheelPos++ % 4}, $i, ($timeSpan > 0 ? $i / $timeSpan : 0)
             , $timeSpan / 86400, ($timeSpan % 86400) / 3600, ($timeSpan % 3600) / 60, $timeSpan % 60);
 
-        printf( " Creation: total: %0.3fs min: %.03fs med: %.03fs max: %.03fs (#>1s:%d) \n"
-            , $cTotal, $cMin, $cMed, $cMax, $cOverSec);
+        printf( " Creation: total: %0.3fs min: %.03fs med: %.03fs max: %.03fs (#slow:%d) \n"
+            , $cTotal, $cMin, $cMed, $cMax, $cSlow);
 
-        printf( " Deletion: total: %0.3fs min: %.03fs med: %.03fs max: %.03fs (#>1s:%d) \n\n"
-            , $uTotal, $uMin, $uMed, $uMax, $uOverSec);
+        printf( " Deletion: total: %0.3fs min: %.03fs med: %.03fs max: %.03fs (#slow:%d) \n\n"
+            , $uTotal, $uMin, $uMed, $uMax, $uSlow);
 
         $lastEcho = $time;
     }
 
-    usleep(FILE_OPS_INTERVAL);
+    usleep($FILE_OPS_INTERVAL);
 }
 
 echo "\n";
@@ -195,10 +189,13 @@ else
     printf("Time limit of %d seconds reached.\n", $TIME_RUN_LIMIT);
 
 if (count($worstHours)) {
-    echo "Slow (> 1s) operations count per hour of the day (GMT):\n";
+    printf("Slow (> %s micro-second) operations count per hour of the day (GMT):\n",
+        number_format($SLOW_TIME_LIMIT));
+
     print_r($worstHours);
 } else {
-    echo "No file creation + deletion took more than a second.\n";
+    printf("No file creation + deletion took more than %s micro-second.\n,",
+        number_format($SLOW_TIME_LIMIT));
 }
 
 echo "\n";
