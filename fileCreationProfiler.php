@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 /*
-    File creation/deletion profiling script v1.03
+    File creation/deletion profiling script v2.00
 
     Copyright © 2014 by John Wellesz
 
@@ -24,8 +24,8 @@ ini_set("display_startup_errors", true);
 error_reporting(E_ALL | E_STRICT);
 set_time_limit(0);
 
-const MAJOR = 1;
-const MINOR = 3;
+const MAJOR = 2;
+const MINOR = 0;
 
 CONST USEC  = 1000000;
 
@@ -81,7 +81,9 @@ printf("Test started on %s.\nTest files created/deleted in '%s' every %sus.\nTes
     , dirname($TEST_FILE_BASE_PATH)
     , number_format($FILE_OPS_INTERVAL)
     , ($TIME_RUN_LIMIT ? "$TIME_RUN_LIMIT seconds" : "ever")
-    , ($SIGNAL_HANDLING ? "" : "No signal handling. You will have to delete the last test file manually and no summary will be available.\n")
+    , ($SIGNAL_HANDLING
+    ? ""
+    : "No signal handling. You may have to delete the last test file manually and no summary will be available if interrupted.\n")
 );
 
 
