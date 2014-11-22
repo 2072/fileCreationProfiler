@@ -29,10 +29,12 @@ When `duration` is reached or if the test is interrupted and slow operations
 occurred a summary will be displayed with the count of slow operations per hour
 of the day (in GMT).
 
+**Test files are created in the 'current directory'.**
+
 Example output:
 
 ```
-(19:07) [john@host] tmp $ ~/work/fileCreationProfiler.php 5 1000 1
+(19:08) [john@host] tmp $ ~/work/fileCreationProfiler.php 5 1000 1
 File creation/deletion profiling script v1.03
 
 Test started on 2014-11-22 18:08'15" GMT.
