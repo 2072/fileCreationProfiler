@@ -24,35 +24,34 @@
 #  ./fileCreationProfiler.php [duration in seconds]
 #
 #       If duration is ommited or 0, the script will run until user
-#       interruption.
+#       interruption (ctrl-c).
 #
 #       By default 2 files per seconds will be created and deleted, you can
 #       change this behaviour by setting the constant FILE_OPS_INTERVAL to a
 #       different value (see below).
 #
-#       Test files are created in the directory where fileCreationProfiler.php
-#       is located, you can change this by seting $TEST_FILE_BASE_PATH (see
-#       below).
+#       Test files are created in the current directory
 
+ini_set("display_startup_errors", true);
+error_reporting(E_ALL | E_STRICT);
 
 ######## CONFIGURATION ###########
 
 # Test file creation/deletion interval in microseconds
 const FILE_OPS_INTERVAL = 500000;
 
-# Test files base path
-$TEST_FILE_BASE_PATH = __FILE__ . "_test-";
-
 ##### END OF CONFIGURATION #######
 
 const MAJOR = 1;
 const MINOR = 3;
 
+# Test files base path
+$TEST_FILE_BASE_PATH = sprintf("%s%s%s_test-",
+    getcwd() ? getcwd() : "", DIRECTORY_SEPARATOR, basename(__FILE__));
 
 $WHEEL = '-\\|/';
 
 ########
-error_reporting(E_ALL | E_STRICT);
 
 if (!defined('PHP_VERSION_ID')) {
     $version = explode('.', PHP_VERSION);
@@ -86,7 +85,7 @@ printf("File creation/deletion profiling script v%d.%02d\n\n", MAJOR, MINOR);
 
 printf("Test started on %s.\nTest files created in '%s'.\nTest will run for %s.\nHit CTRL-C to stop.\n%s\n"
     , gmdate("Y-m-d H:i's\"")
-    , dirname(__FILE__)
+    , dirname($TEST_FILE_BASE_PATH)
     , ($TIME_RUN_LIMIT ? "$TIME_RUN_LIMIT seconds" : "ever")
     , ($SIGNAL_HANDLING ? "" : "No signal handling. You will have to delete the last test file manually and no summary will be available.\n")
 );
